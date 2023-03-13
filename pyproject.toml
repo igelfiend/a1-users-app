@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "a1-users"
+version = "0.1.0"
+description = ""
+authors = ["Ivan Krupin <igelfiend@protonmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+uvicorn = "^0.20.0"
+fastapi = {extras = ["full"], version = "^0.92.0"}
+sqlalchemy = "^2.0.5.post1"
+psycopg2 = "^2.9.5"
+sqlalchemy-repr = "^0.1.0"
+aiohttp = "^3.8.4"
+alembic = "^1.10.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

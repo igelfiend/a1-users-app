@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  db:
+    image: postgres:15.2
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=a1-users
+  a1-users-app:
+    container_name: a1-users-container
+    build: .
+    volumes:
+      - .:/code
+    ports:
+      - "80:80"
+    depends_on:
+      - db
+    restart: on-failure
+  a1-etl-app:
+    container_name: a1-users-container
+    entrypoint: [ "python3", "-m", "app.scripts.fetch_users" ]
+    build: .
+    volumes:
+      - .:/code
+    ports:
+      - "80:80"
+    depends_on:
+      - db
