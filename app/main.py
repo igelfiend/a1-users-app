@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 from app.base import app, engine, Session
 from app.models.base import Model
-from app.models.customer import Customer
 import aiohttp
 
 
@@ -42,8 +41,7 @@ def get_workers_args(url: str, workers_count: int, users_count: int):
     users_for_worker = math.ceil(users_count / workers_count)
 
     workers_args = [
-        {"url": url, "users_count": users_for_worker}
-        for _ in range(workers_count - 1)
+        {"url": url, "users_count": users_for_worker} for _ in range(workers_count - 1)
     ]
     users_for_last_worker = users_count - users_for_worker * (workers_count - 1)
     workers_args.append({"url": url, "users_count": users_for_last_worker})
@@ -78,54 +76,3 @@ async def root():
     print(f"received and parsed {len(list(users))} users")
 
     return {"message": "Hello World"}
-
-
-
-class CustomerPayload(BaseModel):
-    first_name: str
-    last_name: str
-
-
-class CustomerResponse(BaseModel):
-    class Config:
-        orm_mode = True
-    
-    id: int
-    first_name: str
-    last_name: str
-    created_at: datetime
-    updated_at: datetime
-
-
-@app.post("/customers/create")
-async def create_customer(payload: CustomerPayload) -> CustomerResponse:
-    with Session() as session, session.begin():
-        new_customer = Customer(
-            first_name=payload.first_name,
-            last_name=payload.last_name,
-        )
-        session.add(new_customer)
-        session.flush()
-        session.refresh(new_customer)
-        return CustomerResponse.from_orm(new_customer)
-
-
-@app.get("/customers")
-async def get_customers_list() -> list[CustomerResponse]:
-    with Session() as session, session.begin():
-        customers = session.query(Customer).all()
-        return [CustomerResponse.from_orm(c) for c in customers]
-    
-
-@app.patch("/customers/{customer_id}")
-async def update_customer(customer_id: int, payload: CustomerPayload) -> CustomerResponse:
-    with Session() as session, session.begin():
-        customer: Customer = session.query(Customer).get(customer_id)
-        if not customer:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-        customer.first_name = payload.first_name
-        customer.last_name = payload.last_name
-        session.flush()
-        session.refresh(customer)
-        return CustomerResponse.from_orm(customer)
