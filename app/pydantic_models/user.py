@@ -4,6 +4,9 @@ from pydantic import BaseModel
 
 
 class UserLocation(BaseModel):
+    class Config:
+        orm_mode = True
+
     street: str
     street_number: int
     city: str
@@ -12,8 +15,7 @@ class UserLocation(BaseModel):
     postcode: str
 
 
-class User(BaseModel):
-    id: int | None
+class RequestUser(BaseModel):
     gender: str
     first_name: str
     last_name: str
@@ -24,3 +26,10 @@ class User(BaseModel):
     nationality: str
     cell: str
     location: UserLocation
+
+
+class User(RequestUser):
+    class Config:
+        orm_mode = True
+
+    id: int
