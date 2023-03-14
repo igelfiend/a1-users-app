@@ -1,4 +1,3 @@
-from copy import copy
 import csv
 import itertools
 import math
@@ -6,10 +5,10 @@ import sys
 
 import aiohttp
 import asyncio
+from tenacity import retry, wait_fixed, stop_after_attempt
 
 from app.pydantic_models.user import User, UserLocation
 from app.pydantic_models.user_external import ExternalUserResponse, ExternalUser
-
 
 response_mock = """
 {
@@ -53,14 +52,24 @@ response_mock = """
 }
 """
 
+MAX_RETRY_COUNT = 5
+RETRY_WAIT = 1
+
+
+@retry(wait=wait_fixed(RETRY_WAIT), stop=stop_after_attempt(MAX_RETRY_COUNT))
+async def get_external_user_data_from_url(url: str, session: aiohttp.ClientSession):
+    async with session.get(url, raise_for_status=True) as response:
+        data = await response.text()
+        print(f"status: {response.status}")
+        print(f"reason: {response.reason}")
+        return data
+
 
 async def fetch_user_data(url: str, users_count: int) -> dict:
     external_users: list[ExternalUser] = []
     async with aiohttp.ClientSession() as session:
         for _ in range(users_count):
-            async with session.get(url) as response:
-                data = await response.text()
-                data = copy(response_mock)
+            data = await get_external_user_data_from_url(url, session)
             external_users.append(ExternalUserResponse.parse_raw(data).results[0])
     return external_users
 
