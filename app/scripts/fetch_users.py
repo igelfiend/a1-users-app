@@ -7,8 +7,11 @@ import aiohttp
 import asyncio
 from tenacity import retry, wait_fixed, stop_after_attempt
 
-from app.pydantic_models.user import User, UserLocation
+from app.pydantic_models.user import User as PdUser, UserLocation as PdUserLocation
 from app.pydantic_models.user_external import ExternalUserResponse, ExternalUser
+from app.base import Session
+from app.models import User as DbUser, UserLocation as DbUserLocation
+
 
 response_mock = """
 {
@@ -55,14 +58,21 @@ response_mock = """
 MAX_RETRY_COUNT = 5
 RETRY_WAIT = 1
 
+MOCK = False
+
 
 @retry(wait=wait_fixed(RETRY_WAIT), stop=stop_after_attempt(MAX_RETRY_COUNT))
 async def get_external_user_data_from_url(url: str, session: aiohttp.ClientSession):
-    async with session.get(url, raise_for_status=True) as response:
-        data = await response.text()
-        print(f"status: {response.status}")
-        print(f"reason: {response.reason}")
-        return data
+    if MOCK:
+        from copy import copy
+
+        return copy(response_mock)
+    else:
+        async with session.get(url, raise_for_status=True) as response:
+            data = await response.text()
+            print(f"status: {response.status}")
+            print(f"reason: {response.reason}")
+            return data
 
 
 async def fetch_user_data(url: str, users_count: int) -> dict:
@@ -85,9 +95,7 @@ def get_workers_args(url: str, workers_count: int, users_count: int):
     return workers_args
 
 
-async def get_external_users_data(url: str, users_count: int):
-    workers_count = 5
-
+async def get_external_users_data(url: str, users_count: int, workers_count: int):
     workers_args = get_workers_args(
         url=url,
         workers_count=workers_count,
@@ -109,10 +117,10 @@ def get_nationality_names(path: str) -> dict:
 def convert_external_user_to_local(
     ext_users: list[ExternalUser],
     nationality_map: dict[str, str],
-) -> list[User]:
-    users: list[User] = []
+) -> list[PdUser]:
+    users: list[PdUser] = []
     for ext_user in ext_users:
-        user = User(
+        user = PdUser(
             gender=ext_user.gender,
             first_name=ext_user.name.first,
             last_name=ext_user.name.last,
@@ -122,7 +130,7 @@ def convert_external_user_to_local(
             birthday=ext_user.dob.date.date(),
             nationality=nationality_map.get(ext_user.location.country, "unknown"),
             cell=ext_user.cell,
-            location=UserLocation(
+            location=PdUserLocation(
                 street=ext_user.location.street.name,
                 street_number=ext_user.location.street.number,
                 city=ext_user.location.city,
@@ -139,11 +147,12 @@ def convert_external_user_to_local(
 if __name__ == "__main__":
     url = "https://randomuser.me/api/"
     users_count = sys.argv[1] if len(sys.argv) > 1 else 10
-    workers_count = sys.argv[2] if len(sys.argv) > 2 else 5
+    workers_count = sys.argv[2] if len(sys.argv) > 2 else 1
     ext_users = asyncio.run(
         get_external_users_data(
             url=url,
             users_count=users_count,
+            workers_count=workers_count,
         ),
     )
 
@@ -155,5 +164,22 @@ if __name__ == "__main__":
 
     print(f"received and parsed {len(list(users))} users")
 
-    for user in users:
-        print(user)
+    with Session() as session, session.begin():
+        db_users = []
+        for user in users:
+            print(f"user: {user.dict()}")
+            user_location = DbUserLocation(**user.location.dict(exclude={"id"}))
+            session.add(user_location)
+            db_user = DbUser(
+                location=user_location,
+                **user.dict(
+                    exclude={
+                        "id",
+                        "location",
+                    }
+                ),
+            )
+            session.add(db_user)
+            db_users.append(db_user)
+
+    print(f"Database updated")
