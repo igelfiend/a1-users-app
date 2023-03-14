@@ -4,10 +4,12 @@ import math
 
 import asyncio
 from fastapi import HTTPException, status
-from pydantic import BaseModel
+
 
 from app.base import app, engine, Session
+from app.models import User as DbUser, UserLocation as DbUserLocation
 from app.models.base import Model
+from app.pydantic_models.user import User as PdUser, RequestUser
 import aiohttp
 
 
@@ -27,52 +29,37 @@ async def init():
     return {"success": "Tables successfully recreated"}
 
 
-async def fetch_user_data(url: str, users_count: int) -> dict:
-    external_users: list[ExternalUser] = []
-    async with aiohttp.ClientSession() as session:
-        for _ in range(users_count):
-            async with session.get(url) as response:
-                data = await response.text()
-            external_users.append(ExternalUserResponse.parse_raw(data).results[0])
-    return external_users
-
-
-def get_workers_args(url: str, workers_count: int, users_count: int):
-    users_for_worker = math.ceil(users_count / workers_count)
-
-    workers_args = [
-        {"url": url, "users_count": users_for_worker} for _ in range(workers_count - 1)
-    ]
-    users_for_last_worker = users_count - users_for_worker * (workers_count - 1)
-    workers_args.append({"url": url, "users_count": users_for_last_worker})
-    return workers_args
-
-
-async def get_external_users_data(url: str, users_count: int):
-    workers_count = 5
-
-    workers_args = get_workers_args(
-        url=url,
-        workers_count=workers_count,
-        users_count=users_count,
-    )
-
-    results = await asyncio.gather(
-        *[fetch_user_data(**worker_args) for worker_args in workers_args],
-    )
-    return itertools.chain(*results)
-
-
 @app.get("/")
 async def root():
-    global calls_counter
-    calls_counter = 0
-    print("requesting user info")
-    url = "https://randomuser.me/api/"
-    users_count = 100
-
-    users = await get_external_users_data(url=url, users_count=users_count)
-
-    print(f"received and parsed {len(list(users))} users")
-
     return {"message": "Hello World"}
+
+
+@app.get("/users")
+async def get_users() -> list[PdUser]:
+    with Session() as session, session.begin():
+        users: list[DbUser] = session.query(DbUser).all()
+        return [PdUser.from_orm(user) for user in users]
+
+
+@app.get("/users/{user_id}")
+async def get_user(user_id: int) -> PdUser:
+    with Session() as session, session.begin():
+        user = session.query(DbUser).get(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+        return PdUser.from_orm(user)
+
+
+@app.post("/users/create")
+async def create_user(user_data: RequestUser) -> PdUser:
+    with Session() as session, session.begin():
+        user_location = DbUserLocation(**user_data.location.dict())
+        user = DbUser(
+            location=user_location,
+            **user_data.dict(exclude={"location"}),
+        )
+        session.add(user)
+        session.flush()
+        session.refresh(user)
+        return PdUser.from_orm(user)
