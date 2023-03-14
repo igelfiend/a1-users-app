@@ -2,17 +2,19 @@ from fastapi import FastAPI
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import sessionmaker
 
+import os, sys
+from dotenv import load_dotenv
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+sys.path.append(BASE_DIR)
+
 
 app = FastAPI()
 
-connect_url = URL.create(
-    drivername="postgresql+psycopg2",
-    username="postgres",
-    password="postgres",
-    host="db",
-    # port="5432",
-    database="a1-users",
-)
+connect_url = os.environ["DATABASE_URL"]
+
 engine = create_engine(connect_url, echo=True)
 con = engine.connect()
 Session = sessionmaker(engine)
