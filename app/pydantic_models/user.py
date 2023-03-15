@@ -1,9 +1,9 @@
 from datetime import date
 
-from pydantic import BaseModel
+from .base import NoExtraFieldsModel
 
 
-class UserLocation(BaseModel):
+class UserLocation(NoExtraFieldsModel):
     class Config:
         orm_mode = True
 
@@ -15,7 +15,7 @@ class UserLocation(BaseModel):
     postcode: str
 
 
-class RequestUser(BaseModel):
+class RequestUser(NoExtraFieldsModel):
     gender: str
     first_name: str
     last_name: str
@@ -33,3 +33,25 @@ class User(RequestUser):
         orm_mode = True
 
     id: int
+
+
+class RequestUpdateUserLocation(NoExtraFieldsModel):
+    street: str | None
+    street_number: int | None
+    city: str | None
+    state: str | None
+    country: str | None
+    postcode: str | None
+
+
+class RequestUpdateUser(NoExtraFieldsModel):
+    gender: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    email: str | None = None
+    username: str | None = None
+    password: str | None = None
+    birthday: date | None = None
+    nationality: str | None = None
+    cell: str | None = None
+    location: RequestUpdateUserLocation | None = None
