@@ -5,5 +5,5 @@ from app import config
 
 
 app = FastAPI()
-engine = create_engine(config.get_settings().database_url, echo=True)
+engine = create_engine(config.get_settings().database_url)
 Session = sessionmaker(engine)
