@@ -1,37 +1,10 @@
-from datetime import datetime
-import itertools
-import math
-
-import asyncio
 from fastapi import HTTPException, status
 
-
-from app.base import app, engine, Session
-from app.models import User as DbUser, UserLocation as DbUserLocation
-from app.models.base import Model
-from app.pydantic_models.user import User as PdUser, RequestUser
-import aiohttp
-
-
-from app.pydantic_models.user_external import ExternalUserResponse, ExternalUser
-
-
-@app.get("/init")
-async def init():
-    print("dropping previosly-created")
-    Model.metadata.drop_all(engine)
-    print("creating tables...")
-    Model.metadata.create_all(engine)
-    print("tables created successfull")
-    """
-    Endpoint to reset database
-    """
-    return {"success": "Tables successfully recreated"}
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+from app.base import Session, app
+from app.models import User as DbUser
+from app.models import UserLocation as DbUserLocation
+from app.pydantic_models.user import RequestUpdateUser, RequestUser
+from app.pydantic_models.user import User as PdUser
 
 
 @app.get("/users")
@@ -44,14 +17,14 @@ async def get_users() -> list[PdUser]:
 @app.get("/users/{user_id}")
 async def get_user(user_id: int) -> PdUser:
     with Session() as session, session.begin():
-        user = session.query(DbUser).get(user_id)
+        user: DbUser = session.query(DbUser).get(user_id)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
         return PdUser.from_orm(user)
 
 
-@app.post("/users/create")
+@app.post("/users/create", status_code=status.HTTP_201_CREATED)
 async def create_user(user_data: RequestUser) -> PdUser:
     with Session() as session, session.begin():
         user_location = DbUserLocation(**user_data.location.dict())
@@ -63,3 +36,26 @@ async def create_user(user_data: RequestUser) -> PdUser:
         session.flush()
         session.refresh(user)
         return PdUser.from_orm(user)
+
+
+@app.patch("/users/{user_id}")
+async def update_user(user_id: int, user_data: RequestUpdateUser) -> PdUser:
+    with Session() as session, session.begin():
+        user: DbUser = session.query(DbUser).get(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+        user.update(**user_data.dict(exclude_unset=True))
+        session.add(user)
+        return PdUser.from_orm(user)
+
+
+@app.delete("/users/{user_id}")
+async def delete_user(user_id: int):
+    with Session() as session, session.begin():
+        user: DbUser = session.query(DbUser).get(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+        session.delete(user)
+        return {"deleted": user.id}
