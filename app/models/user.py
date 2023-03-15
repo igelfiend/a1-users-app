@@ -36,4 +36,11 @@ class User(Model):
             ondelete="CASCADE",
         ),
     )
-    location: Mapped[UserLocation] = relationship(back_populates="user")
+    location: Mapped[UserLocation] = relationship(back_populates="user", lazy="joined")
+
+    def update(self, **kwargs):
+        location_data = kwargs.pop("location")
+        if location_data:
+            self.location.update(**location_data)
+
+        super().update(**kwargs)
