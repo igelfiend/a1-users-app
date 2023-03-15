@@ -7,7 +7,10 @@ import aiohttp
 import asyncio
 from tenacity import retry, wait_fixed, stop_after_attempt
 
-from app.pydantic_models.user import User as PdUser, UserLocation as PdUserLocation
+from app.pydantic_models.user import (
+    RequestUser as PdUser,
+    UserLocation as PdUserLocation,
+)
 from app.pydantic_models.user_external import ExternalUserResponse, ExternalUser
 from app.base import Session
 from app.models import User as DbUser, UserLocation as DbUserLocation
