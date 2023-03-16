@@ -14,7 +14,7 @@ class UserLocation(Model):
     state = Column(String(50))
     country = Column(String(50))
     postcode = Column(String(20))
-    user: Mapped["User"] = relationship(back_populates="location", passive_deletes=True)
+    user: Mapped["User"] = relationship(back_populates="location")
 
 
 class User(Model):
@@ -30,13 +30,12 @@ class User(Model):
     birthday = Column(Date)
     nationality = Column(String(50))
     cell = Column(String(50))
-    location_id: Mapped[id] = mapped_column(
-        ForeignKey(
-            "userlocations.id",
-            ondelete="CASCADE",
-        ),
+    location_id: Mapped[id] = mapped_column(ForeignKey("userlocations.id"))
+    location: Mapped[UserLocation] = relationship(
+        back_populates="user",
+        lazy="joined",
+        cascade="save-update, merge, delete",
     )
-    location: Mapped[UserLocation] = relationship(back_populates="user", lazy="joined")
 
     def update(self, **kwargs):
         location_data = kwargs.pop("location")
