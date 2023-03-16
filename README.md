@@ -5,11 +5,14 @@ This projects contains 2 features:
 
 ## INSTALLATION
 The only thing that required is docker and docker-compose.
+
 For building all dependencies in docker just run `./initialize.bash`
 
 ## EXECUTION
 To start backend API run `./run_api.bash`
+
 To start fetch script run `./fetch_users.bash`
+
 To reset database state re-run `./initialize.bash`
 
 
