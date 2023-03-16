@@ -100,7 +100,7 @@ def convert_external_user_to_local(
 
 if __name__ == "__main__":
     url = "https://randomuser.me/api/"
-    users_count = sys.argv[1] if len(sys.argv) > 1 else 10
+    users_count = sys.argv[1] if len(sys.argv) > 1 else 100
     workers_count = sys.argv[2] if len(sys.argv) > 2 else 5
 
     logger.info(
