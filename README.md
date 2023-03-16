@@ -1,4 +1,4 @@
-# USER BACKEND SERIVE FOR A1 (TEST)
+# USER BACKEND SERVICE FOR A1 (TEST)
 This projects contains 2 features:
 * backend API for CRUID operations with users
 * fetching user's info from external resourse
