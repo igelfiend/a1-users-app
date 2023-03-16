@@ -34,6 +34,7 @@ Docs can be found at [http://127.0.0.1/docs](http://127.0.0.1/docs) or [http://1
 PgAdmin is attached at [http://127.0.0.1:5050](http://127.0.0.1:5050), credentials are:
 * username/email: `pgadmin4@pgadmin.org`
 * password: `admin`
+
 You should register new database with such info:
 * host name: `db`
 * maintance database: `a1-users`
