@@ -45,4 +45,5 @@ You should register new database with such info:
 Users are fetched from [https://randomuser.me/api](https://randomuser.me/api)
 
 Default users fetch count are 100, count of async workers are 5. This could be customized via args:
+
 `docker-compose run a1-users-app python3 -m app.scripts.fetch_users 10 1` - this will fetch 10 users via 1 worker
