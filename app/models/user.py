@@ -31,6 +31,11 @@ class User(Model):
     nationality = Column(String(50))
     cell = Column(String(50))
     location_id: Mapped[id] = mapped_column(ForeignKey("userlocations.id"))
+    # Cascade deletion should be done via `ondelete="CASCADE` in ForeignKey
+    # but in that case we should make `UserLocation` as FK carrier.
+    # In that case ondelete CASCADE works well, but there are some issues
+    # with pydantic for parsing and validating such kind of one to one relation.
+    # For some reason pydantic receives not single entity but list of entities with single element
     location: Mapped[UserLocation] = relationship(
         back_populates="user",
         lazy="joined",
