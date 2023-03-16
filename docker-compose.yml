@@ -20,16 +20,6 @@ services:
     depends_on:
       - db
     restart: on-failure
-  a1-etl-app:
-    container_name: a1-users-etl
-    entrypoint: [ "python3", "-m", "app.scripts.fetch_users" ]
-    build: .
-    volumes:
-      - .:/code
-    ports:
-      - "80:80"
-    depends_on:
-      - db
   pgadmin:
     container_name: pgadmin
     image: dpage/pgadmin4
